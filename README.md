@@ -5,92 +5,72 @@
 [![license](https://img.shields.io/github/license/cloudflare/quiche.svg)](https://opensource.org/licenses/BSD-2-Clause)
 ![build](https://img.shields.io/github/actions/workflow/status/cloudflare/quiche/stable.yml?branch=master)
 
-[quiche] is an implementation of the QUIC transport protocol and HTTP/3 as
-specified by the [IETF]. It provides a low level API for processing QUIC packets
-and handling connection state. The application is responsible for providing I/O
-(e.g. sockets handling) as well as an event loop with support for timers.
+[quiche] 是 [IETF] 标准化的 QUIC 传输协议和 HTTP/3 的一个实现。它提供了处理 QUIC 数据包和管理连接状态的底层 API。应用程序需要负责提供 I/O（例如套接字处理）以及支持定时器的事件循环。
 
-For more information on how quiche came about and some insights into its design
-you can read a [post] on Cloudflare's blog that goes into some more detail.
+想了解更多关于 quiche 的由来及其设计思路的信息，可以阅读 Cloudflare 博客上的一篇[文章][post]，里面有更详细的介绍。
 
 [quiche]: https://docs.quic.tech/quiche/
 [ietf]: https://quicwg.org/
 [post]: https://blog.cloudflare.com/enjoy-a-slice-of-quic-and-rust/
 
-Who uses quiche?
+谁在使用 quiche？
 ----------------
 
 ### Cloudflare
 
-quiche powers Cloudflare edge network's [HTTP/3 support][cloudflare-http3]. The
-[cloudflare-quic.com](https://cloudflare-quic.com) website can be used for
-testing and experimentation.
+quiche 为 Cloudflare 边缘网络的 [HTTP/3 支持][cloudflare-http3] 提供动力。[cloudflare-quic.com](https://cloudflare-quic.com) 网站可用于测试和实验。
 
 ### Android
 
-Android's DNS resolver uses quiche to [implement DNS over HTTP/3][android-http3].
+Android 的 DNS 解析器使用 quiche 来[实现 DNS over HTTP/3][android-http3]。
 
 ### curl
 
-quiche can be [integrated into curl][curl-http3] to provide support for HTTP/3.
+quiche 可以[集成到 curl][curl-http3] 中以提供对 HTTP/3 的支持。
 
 [cloudflare-http3]: https://blog.cloudflare.com/http3-the-past-present-and-future/
 [android-http3]: https://security.googleblog.com/2022/07/dns-over-http3-in-android.html
 [curl-http3]: https://github.com/curl/curl/blob/master/docs/HTTP3.md#quiche-version
 
-Getting Started
+快速开始
 ---------------
 
-### Command-line apps
+### 命令行应用
 
-Before diving into the quiche API, here are a few examples on how to use the
-quiche tools provided as part of the [quiche-apps](apps/) crate. These are not
-suitable for production environments; see [disclaimers and
-notes](#disclaimers-and-notes).
+在深入了解 quiche API 之前，这里有几个关于如何使用作为 [quiche-apps](apps/) crate 一部分提供的 quiche 工具的示例。这些工具不适合生产环境；请参阅[免责声明和说明](#免责声明和说明)。
 
-After cloning the project according to the command mentioned in the [building](#building) section, the client can be run as follows:
+根据[构建](#构建)部分提到的命令克隆项目后，可以按如下方式运行客户端：
 
 ```bash
  $ cargo run --bin quiche-client -- https://cloudflare-quic.com/
 ```
 
-while the server can be run as follows:
+而服务器可以按如下方式运行：
 
 ```bash
  $ cargo run --bin quiche-server -- --cert apps/src/bin/cert.crt --key apps/src/bin/cert.key
 ```
 
-(note that the certificate provided is self-signed and should not be used in
-production)
+（注意，提供的证书是自签名的，不应在生产中使用）
 
-Use the `--help` command-line flag to get a more detailed description of each
-tool's options.
+使用 `--help` 命令行标志可以获取每个工具选项的更详细描述。
 
-### Configuring connections
+### 配置连接
 
-The first step in establishing a QUIC connection using quiche is creating a
-[`Config`] object:
+使用 quiche 建立 QUIC 连接的第一步是创建一个 [`Config`] 对象：
 
 ```rust
 let mut config = quiche::Config::new(quiche::PROTOCOL_VERSION)?;
 config.set_application_protos(&[b"example-proto"]);
 
-// Additional configuration specific to application and use case...
+// 特定于应用程序和用例的额外配置...
 ```
 
-The [`Config`] object controls important aspects of the QUIC connection such
-as QUIC version, ALPN IDs, flow control, congestion control, idle timeout
-and other properties or features.
+[`Config`] 对象控制着 QUIC 连接的重要方面，例如 QUIC 版本、ALPN ID、流控制、拥塞控制、空闲超时以及其他属性或功能。
 
-QUIC is a general-purpose transport protocol and there are several
-configuration properties where there is no reasonable default value. For
-example, the permitted number of concurrent streams of any particular type
-is dependent on the application running over QUIC, and other use-case
-specific concerns.
+QUIC 是一种通用传输协议，有几个配置属性没有合理的默认值。例如，任何特定类型允许的并发流数量取决于运行在 QUIC 之上的应用程序以及其他特定于用例的问题。
 
-quiche defaults several properties to zero, applications most likely need
-to set these to something else to satisfy their needs using the following:
-
+quiche 将几个属性默认设置为零，应用程序很可能需要使用以下方法将它们设置为其他值以满足需求：
 - [`set_initial_max_streams_bidi()`]
 - [`set_initial_max_streams_uni()`]
 - [`set_initial_max_data()`]
@@ -98,29 +78,25 @@ to set these to something else to satisfy their needs using the following:
 - [`set_initial_max_stream_data_bidi_remote()`]
 - [`set_initial_max_stream_data_uni()`]
 
-[`Config`] also holds TLS configuration. This can be changed by mutators on
-the an existing object, or by constructing a TLS context manually and
-creating a configuration using [`with_boring_ssl_ctx_builder()`].
+[`Config`] 也持有 TLS 配置。这可以通过对现有对象的修改器来改变，或者通过手动构建 TLS 上下文并使用 [`with_boring_ssl_ctx_builder()`] 创建配置。
 
-A configuration object can be shared among multiple connections.
+配置对象可以在多个连接之间共享。
 
-### Connection setup
+### 连接设置
 
-On the client-side the [`connect()`] utility function can be used to create
-a new connection, while [`accept()`] is for servers:
+在客户端，可以使用 [`connect()`] 工具函数创建新连接，而 [`accept()`] 用于服务器：
 
 ```rust
-// Client connection.
+// 客户端连接。
 let conn = quiche::connect(Some(&server_name), &scid, local, peer, &mut config)?;
 
-// Server connection.
+// 服务器连接。
 let conn = quiche::accept(&scid, None, local, peer, &mut config)?;
 ```
 
-### Handling incoming packets
+### 处理传入的数据包
 
-Using the connection's [`recv()`] method the application can process
-incoming packets that belong to that connection from the network:
+使用连接的 [`recv()`] 方法，应用程序可以处理从网络接收到的属于该连接的数据包：
 
 ```rust
 let to = socket.local_addr().unwrap();
@@ -134,17 +110,16 @@ loop {
         Ok(v) => v,
 
         Err(e) => {
-            // An error occurred, handle it.
+            // 发生错误，处理它。
             break;
         },
     };
 }
 ```
 
-### Generating outgoing packets
+### 生成传出的数据包
 
-Outgoing packet are generated using the connection's [`send()`] method
-instead:
+传出的数据包使用连接的 [`send()`] 方法生成：
 
 ```rust
 loop {
@@ -152,12 +127,12 @@ loop {
         Ok(v) => v,
 
         Err(quiche::Error::Done) => {
-            // Done writing.
+            // 写入完成。
             break;
         },
 
         Err(e) => {
-            // An error occurred, handle it.
+            // 发生错误，处理它。
             break;
         },
     };
@@ -166,35 +141,30 @@ loop {
 }
 ```
 
-When packets are sent, the application is responsible for maintaining a
-timer to react to time-based connection events. The timer expiration can be
-obtained using the connection's [`timeout()`] method.
+当数据包被发送时，应用程序负责维护定时器以响应基于时间的连接事件。定时器到期时间可以使用连接的 [`timeout()`] 方法获取。
 
 ```rust
 let timeout = conn.timeout();
 ```
 
-The application is responsible for providing a timer implementation, which
-can be specific to the operating system or networking framework used. When
-a timer expires, the connection's [`on_timeout()`] method should be called,
-after which additional packets might need to be sent on the network:
+应用程序需要提供定时器实现，这可以特定于所使用的操作系统或网络框架。当定时器到期时，应该调用连接的 [`on_timeout()`] 方法，之后可能需要在网络上发送额外的数据包：
 
 ```rust
-// Timeout expired, handle it.
+// 超时到期，处理它。
 conn.on_timeout();
 
-// Send more packets as needed after timeout.
+// 超时后根据需要发送更多数据包。
 loop {
     let (write, send_info) = match conn.send(&mut out) {
         Ok(v) => v,
 
         Err(quiche::Error::Done) => {
-            // Done writing.
+            // 写入完成。
             break;
         },
 
         Err(e) => {
-            // An error occurred, handle it.
+            // 发生错误，处理它。
             break;
         },
     };
@@ -203,51 +173,39 @@ loop {
 }
 ```
 
-#### Pacing
+#### 数据包发送间隔控制
 
-It is recommended that applications [pace] sending of outgoing packets to
-avoid creating packet bursts that could cause short-term congestion and
-losses in the network.
+建议应用程序[控制][pace]传出数据包的发送间隔，以避免创建可能导致网络短期拥塞和数据包丢失的数据包突发。
 
-quiche exposes pacing hints for outgoing packets through the [`at`] field
-of the [`SendInfo`] structure that is returned by the [`send()`] method.
-This field represents the time when a specific packet should be sent into
-the network.
+quiche 通过 [`send()`] 方法返回的 [`SendInfo`] 结构的 [`at`] 字段公开传出数据包的发送间隔提示。此字段表示特定数据包应发送到网络的时间。
 
-Applications can use these hints by artificially delaying the sending of
-packets through platform-specific mechanisms (such as the [`SO_TXTIME`]
-socket option on Linux), or custom methods (for example by using user-space
-timers).
+应用程序可以通过平台特定机制（例如 Linux 上的 [`SO_TXTIME`] 套接字选项）或自定义方法（例如使用用户空间定时器）人为延迟数据包的发送来利用这些提示。
 
 [pace]: https://datatracker.ietf.org/doc/html/rfc9002#section-7.7
 [`SO_TXTIME`]: https://man7.org/linux/man-pages/man8/tc-etf.8.html
 
-### Sending and receiving stream data
+### 发送和接收流数据
 
-After some back and forth, the connection will complete its handshake and
-will be ready for sending or receiving application data.
+经过一些来回交互后，连接将完成其握手并准备好发送或接收应用数据。
 
-Data can be sent on a stream by using the [`stream_send()`] method:
+可以使用 [`stream_send()`] 方法在流上发送数据：
 
 ```rust
 if conn.is_established() {
-    // Handshake completed, send some data on stream 0.
+    // 握手完成，在流 0 上发送一些数据。
     conn.stream_send(0, b"hello", true)?;
 }
 ```
 
-The application can check whether there are any readable streams by using
-the connection's [`readable()`] method, which returns an iterator over all
-the streams that have outstanding data to read.
+应用程序可以通过使用连接的 [`readable()`] 方法检查是否有任何可读流，该方法返回一个迭代器，遍历所有有待读取数据的流。
 
-The [`stream_recv()`] method can then be used to retrieve the application
-data from the readable stream:
+然后可以使用 [`stream_recv()`] 方法从可读流中检索应用数据：
 
 ```rust
 if conn.is_established() {
-    // Iterate over readable streams.
+    // 遍历可读流。
     for stream_id in conn.readable() {
-        // Stream is readable, read until there's no more data.
+        // 流可读，读取直到没有更多数据。
         while let Ok((read, fin)) = conn.stream_recv(stream_id, &mut buf) {
             println!("Got {} bytes on stream {}", read, stream_id);
         }
@@ -257,8 +215,7 @@ if conn.is_established() {
 
 ### HTTP/3
 
-The quiche [HTTP/3 module] provides a high level API for sending and
-receiving HTTP requests and responses on top of the QUIC transport protocol.
+quiche 的 [HTTP/3 模块] 提供了在 QUIC 传输协议之上发送和接收 HTTP 请求和响应的高级 API。
 
 [`Config`]: https://docs.quic.tech/quiche/struct.Config.html
 [`set_initial_max_streams_bidi()`]: https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_streams_bidi
@@ -277,194 +234,165 @@ receiving HTTP requests and responses on top of the QUIC transport protocol.
 [`stream_send()`]: https://docs.quic.tech/quiche/struct.Connection.html#method.stream_send
 [`readable()`]: https://docs.quic.tech/quiche/struct.Connection.html#method.readable
 [`stream_recv()`]: https://docs.quic.tech/quiche/struct.Connection.html#method.stream_recv
-[HTTP/3 module]: https://docs.quic.tech/quiche/h3/index.html
+[HTTP/3 模块]: https://docs.quic.tech/quiche/h3/index.html
 
-Have a look at the [quiche/examples/] directory for more complete examples on
-how to use the quiche API, including examples on how to use quiche in C/C++
-applications (see below for more information).
+请查看 [quiche/examples/] 目录以获取更完整的使用 quiche API 的示例，包括如何在 C/C++ 应用程序中使用 quiche 的示例（更多信息见下文）。
 
 [examples/]: quiche/examples/
 
-Calling quiche from C/C++
+从 C/C++ 调用 quiche
 -------------------------
 
-quiche exposes a [thin C API] on top of the Rust API that can be used to more
-easily integrate quiche into C/C++ applications (as well as in other languages
-that allow calling C APIs via some form of FFI). The C API follows the same
-design of the Rust one, modulo the constraints imposed by the C language itself.
+quiche 在 Rust API 之上公开了一个[精简的 C API][thin C API]，可以更轻松地将 quiche 集成到 C/C++ 应用程序中（以及其他允许通过某种形式的 FFI 调用 C API 的语言）。C API 遵循与 Rust API 相同的设计，除了受 C 语言本身施加的限制。
 
-When running ``cargo build``, a static library called ``libquiche.a`` will be
-built automatically alongside the Rust one. This is fully stand-alone and can
-be linked directly into C/C++ applications.
+运行 ``cargo build`` 时，一个名为 ``libquiche.a`` 的静态库将与 Rust 库一起自动构建。这是一个完全独立的库，可以直接链接到 C/C++ 应用程序中。
 
-Note that in order to enable the FFI API, the ``ffi`` feature must be enabled (it
-is disabled by default), by passing ``--features ffi`` to ``cargo``.
+请注意，为了启用 FFI API，必须启用 ``ffi`` 功能（默认禁用），方法是将 ``--features ffi`` 传递给 ``cargo``。
 
 [thin C API]: https://github.com/cloudflare/quiche/blob/master/quiche/include/quiche.h
 
-Building
+构建
 --------
 
-quiche requires Rust 1.85 or later to build. The latest stable Rust release can
-be installed using [rustup](https://rustup.rs/).
+quiche 需要 Rust 1.85 或更高版本才能构建。可以使用 [rustup](https://rustup.rs/) 安装最新的稳定版 Rust。
 
-Once the Rust build environment is setup, the quiche source code can be fetched
-using git:
+设置好 Rust 构建环境后，可以使用 git 获取 quiche 源代码：
 
 ```bash
  $ git clone --recursive https://github.com/cloudflare/quiche
 ```
 
-and then built using cargo:
+然后使用 cargo 构建：
 
 ```bash
  $ cargo build --examples
 ```
 
-cargo can also be used to run the testsuite:
+也可以使用 cargo 运行测试套件：
 
 ```bash
  $ cargo test
 ```
 
-Note that [BoringSSL], which is used to implement QUIC's cryptographic handshake
-based on TLS, needs to be built and linked to quiche. This is done automatically
-when building quiche using cargo, but requires the `cmake` command to be
-available during the build process. On Windows you also need
-[NASM](https://www.nasm.us/). The [official BoringSSL
-documentation](https://github.com/google/boringssl/blob/master/BUILDING.md) has
-more details.
+请注意，用于实现基于 TLS 的 QUIC 加密握手的 [BoringSSL] 需要构建并链接到 quiche。使用 cargo 构建 quiche 时会自动完成此操作，但构建过程需要 `cmake` 命令可用。在 Windows 上还需要 [NASM](https://www.nasm.us/)。[官方的 BoringSSL 文档](https://github.com/google/boringssl/blob/master/BUILDING.md) 有更多细节。
 
-In alternative you can use your own custom build of BoringSSL by configuring
-the BoringSSL directory with the ``QUICHE_BSSL_PATH`` environment variable:
+或者，您可以通过使用 ``QUICHE_BSSL_PATH`` 环境变量配置 BoringSSL 目录来使用自己的自定义 BoringSSL 构建：
 
 ```bash
  $ QUICHE_BSSL_PATH="/path/to/boringssl" cargo build --examples
 ```
 
-Alternatively you can use [OpenSSL/quictls]. To enable quiche to use this vendor
-the ``openssl`` feature can be added to the ``--feature`` list. Be aware that
-``0-RTT`` is not supported if this vendor is used.
+或者，您可以使用 [OpenSSL/quictls]。要启用 quiche 使用此供应商，可以将 ``openssl`` 功能添加到 ``--feature`` 列表中。请注意，如果使用此供应商，则不支持 ``0-RTT``。
 
 [BoringSSL]: https://boringssl.googlesource.com/boringssl/
 
 [OpenSSL/quictls]: https://github.com/quictls/openssl
 
-### Building for Android
+### 为 Android 构建
 
-Building quiche for Android (NDK version 19 or higher, 21 recommended), can be
-done using [cargo-ndk] (v2.0 or later).
+可以使用 [cargo-ndk]（v2.0 或更高版本）为 Android（NDK 版本 19 或更高，推荐 21）构建 quiche。
 
-First the [Android NDK] needs to be installed, either using Android Studio or
-directly, and the `ANDROID_NDK_HOME` environment variable needs to be set to the
-NDK installation path, e.g.:
+首先需要安装 [Android NDK]，可以通过 Android Studio 或直接安装，并且需要将 `ANDROID_NDK_HOME` 环境变量设置为 NDK 安装路径，例如：
 
 ```bash
  $ export ANDROID_NDK_HOME=/usr/local/share/android-ndk
 ```
 
-Then the Rust toolchain for the Android architectures needed can be installed as
-follows:
+然后可以按如下方式安装所需 Android 架构的 Rust 工具链：
 
 ```bash
  $ rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 ```
 
-Note that the minimum API level is 21 for all target architectures.
+请注意，所有目标架构的最低 API 级别都是 21。
 
-[cargo-ndk] (v2.0 or later) also needs to be installed:
+还需要安装 [cargo-ndk]（v2.0 或更高版本）：
 
 ```bash
  $ cargo install cargo-ndk
 ```
 
-Finally the quiche library can be built using the following procedure. Note that
-the `-t <architecture>` and `-p <NDK version>` options are mandatory.
+最后，可以使用以下过程构建 quiche 库。请注意，`-t <architecture>` 和 `-p <NDK version>` 选项是必需的。
 
 ```bash
  $ cargo ndk -t arm64-v8a -p 21 -- build --features ffi
 ```
 
-See [build_android_ndk19.sh] for more information.
+更多信息请参见 [build_android_ndk19.sh]。
 
 [Android NDK]: https://developer.android.com/ndk
 [cargo-ndk]: https://docs.rs/crate/cargo-ndk
 [build_android_ndk19.sh]: https://github.com/cloudflare/quiche/blob/master/tools/android/build_android_ndk19.sh
 
-### Building for iOS
+### 为 iOS 构建
 
-To build quiche for iOS, you need the following:
-
-- Install Xcode command-line tools. You can install them with Xcode or with the
-  following command:
+要为 iOS 构建 quiche，您需要以下条件：
+- 安装 Xcode 命令行工具。您可以使用 Xcode 或以下命令安装它们：
 
 ```bash
  $ xcode-select --install
 ```
 
-- Install the Rust toolchain for iOS architectures:
+- 为 iOS 架构安装 Rust 工具链：
 
 ```bash
  $ rustup target add aarch64-apple-ios x86_64-apple-ios
 ```
 
-- Install `cargo-lipo`:
+- 安装 `cargo-lipo`：
 
 ```bash
  $ cargo install cargo-lipo
 ```
 
-To build libquiche, run the following command:
+要构建 libquiche，请运行以下命令：
 
 ```bash
  $ cargo lipo --features ffi
 ```
 
-or
+或者
 
 ```bash
  $ cargo lipo --features ffi --release
 ```
 
-iOS build is tested in Xcode 10.1 and Xcode 11.2.
+iOS 构建已在 Xcode 10.1 和 Xcode 11.2 中测试。
 
-### Building Docker images
+### 构建 Docker 镜像
 
-In order to build the Docker images, simply run the following command:
+要构建 Docker 镜像，只需运行以下命令：
 
 ```bash
  $ make docker-build
 ```
 
-You can find the quiche Docker images on the following Docker Hub repositories:
+您可以在以下 Docker Hub 存储库中找到 quiche Docker 镜像：
 
 - [cloudflare/quiche](https://hub.docker.com/repository/docker/cloudflare/quiche)
 - [cloudflare/quiche-qns](https://hub.docker.com/repository/docker/cloudflare/quiche-qns)
 
-The `latest` tag will be updated whenever quiche master branch updates.
+每当 quiche 主分支更新时，`latest` 标签将被更新。
 
 **cloudflare/quiche**
 
-Provides a server and client installed in /usr/local/bin.
+提供安装在 /usr/local/bin 中的服务器和客户端。
 
 **cloudflare/quiche-qns**
 
-Provides the script to test quiche within the [quic-interop-runner](https://github.com/marten-seemann/quic-interop-runner).
+提供在 [quic-interop-runner](https://github.com/marten-seemann/quic-interop-runner) 中测试 quiche 的脚本。
 
-Disclaimers and Notes
+免责声明和说明
 ---------
 
-⚠️ This repository includes a number of client and server example
-applications that are provided to demonstrate simple usage of the quiche library
-API. They are not intended to be used in production environments; no
-performance, security or reliability guarantees are provided.
+⚠️ 此存储库包含许多客户端和服务器示例应用程序，用于演示 quiche 库 API 的简单用法。它们不适用于生产环境；不提供性能、安全性或可靠性保证。
+⚠️ 由DeepSeek翻译。
 
-
-Copyright
+版权
 ---------
 
-Copyright (C) 2018-2019, Cloudflare, Inc.
+版权所有 (C) 2018-2019, Cloudflare, Inc.
 
-See [COPYING] for the license.
+许可证请参见 [COPYING]。
 
 [COPYING]: https://github.com/cloudflare/quiche/tree/master/COPYING
